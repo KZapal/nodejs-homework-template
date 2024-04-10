@@ -37,6 +37,6 @@ contactSchema.statics.updateContact = function (contactId, body) {
   return Contact.findByIdAndUpdate(contactId, body, { new: true });
 };
 
-const Contact = mongoose.model("Contact", contactSchema, "db-contacts");
+const Contact = mongoose.model("Contact", contactSchema, "contacts");
 
 module.exports = Contact;
