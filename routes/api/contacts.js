@@ -33,79 +33,77 @@ router.get("/:id", async (req, res, next) => {
 
 // Update contact
 router.put("/:id", async (req, res) => {
-  const { name, email, phone } = req.body;
   const contactId = req.params.id;
-
-  const updatedContact = { name, email, phone };
-
   const { error } = validation.validate(req.body);
 
   if (error) {
     return res.status(400).json({ message: error.details[0].message });
-  }
+  } else {
+    try {
+      const existingContact = await contactsModel.getContactById(contactId);
 
-  try {
-    const existingContact = await contactsModel.getContactById(contactId);
-
-    if (!existingContact) {
-      return res.status(404).json({ message: "Contact not found" });
-    }
-
-    Object.keys(updatedContact).forEach((key) => {
-      if (!updatedContact[key]) {
-        updatedContact[key] = existingContact[key];
+      if (!existingContact) {
+        return res.status(404).json({ message: "Contact not found" });
       }
-    });
 
-    const result = await contactsModel.updateContact(contactId, updatedContact);
+      const updatedContact = { ...existingContact, ...req.body };
 
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: "Internal Server Error" });
+      const result = await contactsModel.updateContact(
+        contactId,
+        updatedContact
+      );
+
+      res.status(200).json(result);
+    } catch (error) {
+      res.status(500).json({ message: "Internal Server Error" });
+    }
   }
 });
 
 // Add contact
 router.post("/", async (req, res) => {
   const { name, email, phone } = req.body;
-
   const { error } = validation.validate(req.body);
   if (error) {
     return res.status(400).json({ message: error.details[0].message });
-  }
-
-  try {
-    const contacts = await contactsModel.listContacts();
-    const existingContact = contacts.find(
-      (contact) => contact.name === name || contact.email === email
-    );
-    if (existingContact) {
-      return res.status(400).json({
-        message: "Contact with the same email or phone number already exists",
-      });
+  } else {
+    try {
+      const contacts = await contactsModel.listContacts();
+      const existingContact = contacts.find(
+        (contact) => contact.phone === phone || contact.email === email
+      );
+      if (existingContact) {
+        return res.status(400).json({
+          message: "Contact with the same email or phone number already exists",
+        });
+      } else {
+        const newContact = {
+          id: generateRandomId(),
+          name,
+          email,
+          phone,
+        };
+        await contactsModel.addContact(newContact);
+        res.status(201).json(newContact);
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Internal Server Error" });
     }
-
-    const newContact = {
-      id: generateRandomId(),
-      name,
-      email,
-      phone,
-    };
-
-    await contactsModel.addContact(newContact);
-    res.status(201).json(newContact);
-  } catch (error) {
-    res.status(500).json({ message: "Internal Server Error" });
   }
 });
 
 // Delete contact
 router.delete("/:id", async (req, res) => {
-  const deletedContact = await contactsModel.removeContact(req.params.id);
-  if (!deletedContact) {
-    return res.status(404).json({ message: "Not found" });
+  try {
+    const deletedContact = await contactsModel.removeContact(req.params.id);
+    if (!deletedContact) {
+      return res.status(404).json({ message: "Not found" });
+    } else {
+      res.json({ message: "contact deleted" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
   }
-  res.json({ message: "contact deleted" });
 });
 
 module.exports = router;
