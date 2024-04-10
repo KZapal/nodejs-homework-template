@@ -1,22 +1,30 @@
 const fs = require("fs/promises");
 
 const readFile = async () => {
-  try {
-    const data = await fs.readFile("./models/contacts.json", "utf-8");
-    return JSON.parse(data);
-  } catch (error) {
-    console.error("Error reading contacts file:", error.message);
-    return [];
-  }
+  // try {
+  const data = await fs.readFile("./models/contacts.json", "utf-8");
+  return JSON.parse(data);
+  // } catch (error) {
+  //   console.error("Error reading contacts file:", error.message);
+  //   return [];
+  // }
 };
 
 const listContacts = async () => {
-  return await readFile();
+  try {
+    return await readFile();
+  } catch (error) {
+    throw new Error("Error");
+  }
 };
 
 const getContactById = async (contactId) => {
-  const contacts = await listContacts();
-  return contacts.find((contact) => contact.id === contactId);
+  try {
+    const contacts = await listContacts();
+    return contacts.find((contact) => contact.id === contactId);
+  } catch (error) {
+    throw new Error("Error");
+  }
 };
 
 const removeContact = async (contactId) => {
@@ -65,16 +73,20 @@ const addContact = async (body) => {
 };
 
 const updateContact = async (contactId, body) => {
-  const contacts = await listContacts();
-  const updatedContacts = contacts.map((contact) =>
-    contact.id === contactId ? { ...contact, ...body } : contact
-  );
-  await fs.writeFile(
-    "./models/contacts.json",
-    JSON.stringify(updatedContacts, null, 2),
-    "utf-8"
-  );
-  return updatedContacts.find((contact) => contact.id === contactId);
+  try {
+    const contacts = await listContacts();
+    const updatedContacts = contacts.map((contact) =>
+      contact.id === contactId ? { ...contact, ...body } : contact
+    );
+    await fs.writeFile(
+      "./models/contacts.json",
+      JSON.stringify(updatedContacts, null, 2),
+      "utf-8"
+    );
+    return updatedContacts.find((contact) => contact.id === contactId);
+  } catch (error) {
+    throw new Error("Error");
+  }
 };
 
 module.exports = {
