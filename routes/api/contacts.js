@@ -37,7 +37,7 @@ router.put("/:id", async (req, res) => {
   const { error } = validation.validate(req.body);
 
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json({ message: error.message });
   } else {
     try {
       const existingContact = await contactsModel.getContactById(contactId);
@@ -65,7 +65,7 @@ router.post("/", async (req, res) => {
   const { name, email, phone } = req.body;
   const { error } = validation.validate(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json({ message: error.message });
   } else {
     try {
       const contacts = await contactsModel.listContacts();
@@ -100,6 +100,29 @@ router.delete("/:id", async (req, res) => {
       return res.status(404).json({ message: "Not found" });
     } else {
       res.json({ message: "contact deleted" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+router.patch("/id/favorite", async (req, res) => {
+  try {
+    const contactId = req.params.contactId;
+
+    if (!req.body.favorite) {
+      return res.status(400).json({ message: "missing field favorite" });
+    }
+
+    const updatedContact = await contactsModel.updateStatusContact(
+      contactId,
+      req.body
+    );
+
+    if (!updatedContact) {
+      return res.status(404).json({ message: "Not found" });
+    } else {
+      res.status(200).json(updatedContact);
     }
   } catch (error) {
     res.status(500).json({ message: "Internal Server Error" });

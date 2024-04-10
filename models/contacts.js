@@ -1,91 +1,50 @@
-const fs = require("fs/promises");
-
-const readFile = async () => {
-  // try {
-  const data = await fs.readFile("./models/contacts.json", "utf-8");
-  return JSON.parse(data);
-  // } catch (error) {
-  //   console.error("Error reading contacts file:", error.message);
-  //   return [];
-  // }
-};
+const Contact = require("../mongodb/contactsSchema");
 
 const listContacts = async () => {
   try {
-    return await readFile();
+    return await Contact.listContacts();
   } catch (error) {
-    throw new Error("Error");
+    throw new Error("Error find contacts list");
   }
 };
 
 const getContactById = async (contactId) => {
   try {
-    const contacts = await listContacts();
-    return contacts.find((contact) => contact.id === contactId);
+    return Contact.getContactById();
   } catch (error) {
-    throw new Error("Error");
+    throw new Error("Error find contact");
   }
 };
 
 const removeContact = async (contactId) => {
   try {
-    const contacts = await listContacts();
-    const indexToRemove = contacts.findIndex(
-      (contact) => contact.id === contactId
-    );
-
-    if (indexToRemove === -1) {
-      return null;
-    }
-
-    const deletedContact = contacts.splice(indexToRemove, 1)[0];
-
-    await fs.writeFile(
-      "./models/contacts.json",
-      JSON.stringify(contacts, null, 2),
-      "utf-8"
-    );
-
-    return deletedContact;
+    return Contact.removeContact(contactId);
   } catch (error) {
-    console.error("Error writing contacts file:", error.message);
-    return null;
+    throw new Error("Error remov contact");
   }
 };
 
 const addContact = async (body) => {
   try {
-    const contacts = await listContacts();
-    const newContact = { ...body };
-    contacts.push(newContact);
-
-    await fs.writeFile(
-      "./models/contacts.json",
-      JSON.stringify(contacts, null, 2),
-      "utf-8"
-    );
-
-    return newContact;
+    return Contact.addContact(body);
   } catch (error) {
-    console.error("Error adding new contact:", error.message);
-    return null;
+    throw new Error("Error adding contact");
   }
 };
 
 const updateContact = async (contactId, body) => {
   try {
-    const contacts = await listContacts();
-    const updatedContacts = contacts.map((contact) =>
-      contact.id === contactId ? { ...contact, ...body } : contact
-    );
-    await fs.writeFile(
-      "./models/contacts.json",
-      JSON.stringify(updatedContacts, null, 2),
-      "utf-8"
-    );
-    return updatedContacts.find((contact) => contact.id === contactId);
+    return Contact.updateContact(contactId, body);
   } catch (error) {
-    throw new Error("Error");
+    throw new Error("Error updating contact data");
+  }
+};
+
+const updateStatusContact = async (contactId, body) => {
+  try {
+    return await Contact.updateContact(contactId, body);
+  } catch (error) {
+    throw new Error("Error updating contact status");
   }
 };
 
@@ -95,4 +54,5 @@ module.exports = {
   removeContact,
   addContact,
   updateContact,
+  updateStatusContact,
 };

@@ -18,6 +18,9 @@ const schema = Joi.object({
     .messages({
       "string.pattern.base": "Invalid format. Example XXX-XXX-XXX",
     }),
+  favortie: Joi.boolean().messages({
+    "boolean.base": "Favorite must be true or false value",
+  }),
 });
 
 module.exports = schema;
