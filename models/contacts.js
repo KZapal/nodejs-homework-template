@@ -1,50 +1,126 @@
 const Contact = require("../mongodb/contactsSchema");
+const validation = require("../validation/joi");
+const { v4: uuidv4 } = require("uuid");
 
-const listContacts = async () => {
+function generateRandomId() {
+  return uuidv4().replace(/-/g, "").substr(0, 21);
+}
+
+const listContacts = async (req, res, next) => {
   try {
-    return await Contact.listContacts();
+    const contacts = await Contact.find();
+    res.status(200).json(contacts);
   } catch (error) {
-    throw new Error("Error find contacts list");
+    next(error);
   }
 };
 
-const getContactById = async (contactId) => {
+const getContactById = async (req, res, next) => {
   try {
-    return Contact.getContactById();
+    const contact = await Contact.findById(req.params.id);
+    if (!contact) {
+      return res.status(404).json({ message: "Not found" });
+    }
   } catch (error) {
-    throw new Error("Error find contact");
+    next(error);
   }
 };
 
-const removeContact = async (contactId) => {
+const removeContact = async (req, res, next) => {
   try {
-    return Contact.removeContact(contactId);
+    const deletedContact = await Contact.findByIdAndDelete(req.params.id);
+    if (!deletedContact) {
+      return res.status(404).json({ message: "Not found" });
+    } else {
+      res.json({ message: "contact deleted" });
+    }
   } catch (error) {
-    throw new Error("Error remov contact");
+    next(error);
   }
 };
 
-const addContact = async (body) => {
-  try {
-    return Contact.addContact(body);
-  } catch (error) {
-    throw new Error("Error adding contact");
+const addContact = async (req, res, next) => {
+  const { name, email, phone } = req.body;
+  const { error } = validation.validate(req.body);
+
+  if (error) {
+    return res.status(400).json({ message: error.message });
+  } else {
+    try {
+      const contacts = await Contact.find();
+      const existingContact = contacts.find(
+        (contact) => contact.phone === phone || contact.email === email
+      );
+      if (existingContact) {
+        return res.status(400).json({
+          message: "Contact with the same email or phone number already exists",
+        });
+      } else {
+        const newContact = {
+          id: generateRandomId(),
+          name,
+          email,
+          phone,
+        };
+        await Contact.create(newContact);
+        res.status(201).json(newContact);
+      }
+    } catch (error) {
+      next(error);
+    }
   }
 };
 
-const updateContact = async (contactId, body) => {
-  try {
-    return Contact.updateContact(contactId, body);
-  } catch (error) {
-    throw new Error("Error updating contact data");
+const updateContact = async (req, res, next) => {
+  const contactId = req.params.id;
+  const { error } = validation.validate(req.body);
+
+  if (error) {
+    return res.status(400).json({ message: error.message });
+  } else {
+    try {
+      const existingContact = await Contact.findById(contactId);
+
+      if (!existingContact) {
+        return res.status(404).json({ message: "Contact not found" });
+      } else {
+        const updatedContact = { ...existingContact, ...req.body };
+
+        const result = await Contact.findByIdAndUpdate(
+          contactId,
+          updatedContact,
+          { new: true }
+        );
+
+        res.status(200).json(result);
+      }
+    } catch (error) {
+      next(error);
+    }
   }
 };
 
-const updateStatusContact = async (contactId, body) => {
+const updateStatusContact = async (req, res, next) => {
   try {
-    return await Contact.updateContact(contactId, body);
+    const contactId = req.params.id;
+
+    if (!req.body.favorite) {
+      return res.status(400).json({ message: "missing field favorite" });
+    } else {
+      const updatedContact = await Contact.findByIdAndUpdate(
+        contactId,
+        req.body,
+        { new: true }
+      );
+
+      if (!updatedContact) {
+        return res.status(404).json({ message: "Not found" });
+      } else {
+        res.status(200).json(updatedContact);
+      }
+    }
   } catch (error) {
-    throw new Error("Error updating contact status");
+    next(error);
   }
 };
 

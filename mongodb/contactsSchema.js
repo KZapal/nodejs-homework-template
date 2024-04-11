@@ -16,27 +16,6 @@ const contactSchema = new mongoose.Schema({
   },
 });
 
-contactSchema.statics.listContacts = function () {
-  return Contact.find();
-};
-
-contactSchema.statics.getContactById = function (contactId) {
-  return Contact.findById(contactId);
-};
-
-contactSchema.statics.removeContact = function (contactId) {
-  return Contact.findByIdAndDelete(contactId);
-};
-
-contactSchema.statics.addContact = function (body) {
-  const newContact = new Contact(body);
-  return newContact.save();
-};
-
-contactSchema.statics.updateContact = function (contactId, body) {
-  return Contact.findByIdAndUpdate(contactId, body, { new: true });
-};
-
 const Contact = mongoose.model("Contact", contactSchema, "contacts");
 
 module.exports = Contact;
