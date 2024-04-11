@@ -1,10 +1,5 @@
 const Contact = require("../mongodb/contactsSchema");
 const validation = require("../validation/joi");
-const { v4: uuidv4 } = require("uuid");
-
-function generateRandomId() {
-  return uuidv4().replace(/-/g, "").substr(0, 21);
-}
 
 const listContacts = async (req, res) => {
   try {
@@ -60,7 +55,6 @@ const addContact = async (req, res) => {
       });
     }
     const newContact = {
-      id: generateRandomId(),
       name,
       email,
       phone,
