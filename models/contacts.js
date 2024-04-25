@@ -1,54 +1,87 @@
 const Contact = require("../mongodb/contactsSchema");
-const validation = require("../validation/joi");
+const { contactSchema } = require("../validation/joi");
 
-const listContacts = async (req, res) => {
+// wcześniejsza funkcja
+// const listContacts = async (req, res, next) => {
+//   try {
+//     const contacts = await Contact.find({ owner: req.user._id });
+//     res.status(200).json(contacts);
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
+const getContactsList = async (req, res, next) => {
   try {
-    const contacts = await Contact.find();
+    const { page = 1, limit = 20, favorite } = req.query;
+    const query = { owner: req.user._id };
+
+    if (favorite !== undefined) {
+      query.favorite = favorite;
+    }
+
+    const options = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+    };
+
+    const contacts = await Contact.paginate(query, options);
+
     res.status(200).json(contacts);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getContactById = async (req, res) => {
+const getContactById = async (req, res, next) => {
   try {
     const contact = await Contact.findById(req.params.id);
+
     if (!contact) {
       return res.status(404).json({ message: "Not found" });
-    } else {
-      res.status(200).json(contact);
     }
+
+    if (contact.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    return res.status(200).json(contact);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const removeContact = async (req, res) => {
+const removeContact = async (req, res, next) => {
   try {
     const deletedContact = await Contact.findByIdAndDelete(req.params.id);
+
     if (!deletedContact) {
-      return res.status(404).json({ message: "Not found" });
-    } else {
-      res.json({ message: "contact deleted" });
+      return res.status(404).json({ message: "Contact not found" });
     }
+
+    if (deletedContact.owner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    res.json({ message: "Contact deleted" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const addContact = async (req, res) => {
+const addContact = async (req, res, next) => {
   const { name, email, phone } = req.body;
-  const { error } = validation.validate(req.body);
+  const { error } = contactSchema.validate(req.body);
 
   if (error) {
     return res.status(400).json({ message: error.message });
   }
 
   try {
-    const contacts = await Contact.find();
-    const existingContact = contacts.find(
-      (contact) => contact.phone === phone || contact.email === email
-    );
+    const existingContact = await Contact.findOne({
+      owner: req.user._id,
+      $or: [{ phone }, { email }],
+    });
     if (existingContact) {
       return res.status(400).json({
         message: "Contact with the same email or phone number already exists",
@@ -58,54 +91,76 @@ const addContact = async (req, res) => {
       name,
       email,
       phone,
+      owner: req.user._id,
     };
     await Contact.create(newContact);
     res.status(201).json(newContact);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const updateContact = async (req, res) => {
+const updateContact = async (req, res, next) => {
   const contactId = req.params.id;
-  const { error } = validation.validate(req.body);
+  const { error } = contactSchema.validate(req.body);
 
   if (error) {
     return res.status(400).json({ message: error.message });
   }
 
   try {
-    const existingContact = await Contact.findById(contactId);
+    const contact = await Contact.findOne({
+      _id: contactId,
+      owner: req.user._id,
+    });
 
-    if (!existingContact) {
+    if (!contact) {
       return res.status(404).json({ message: "Contact not found" });
     }
 
-    await Contact.findByIdAndUpdate(contactId, req.body);
+    const { name, email, phone } = req.body;
 
-    res.status(200).json(existingContact);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+    if (name !== undefined) {
+      contact.name = name;
+    }
+    if (email !== undefined) {
+      contact.email = email;
+    }
+    if (phone !== undefined) {
+      contact.phone = phone;
+    }
 
-const updateStatusContact = async (req, res) => {
-  try {
-    const contact = await Contact.findById(req.params.id);
-
-    const favoriteValue = contact.favorite;
-
-    contact.favorite = !favoriteValue;
     await contact.save();
 
     res.status(200).json(contact);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
+  }
+};
+
+const updateStatusContact = async (req, res, next) => {
+  try {
+    const contactId = req.params.id;
+    const contact = await Contact.findOne({
+      _id: contactId,
+      owner: req.user._id,
+    });
+
+    if (!contact) {
+      return res.status(404).json({ message: "Contact not found" });
+    }
+
+    contact.favorite = !contact.favorite;
+    await contact.save();
+
+    res.status(200).json(contact);
+  } catch (error) {
+    next(error);
   }
 };
 
 module.exports = {
-  listContacts,
+  getContactsList,
   getContactById,
   removeContact,
   addContact,
