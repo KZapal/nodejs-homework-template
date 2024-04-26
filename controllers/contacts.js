@@ -1,4 +1,4 @@
-const Contact = require("../mongodb/contactsSchema");
+const Contact = require("../models/contactModel");
 const { contactSchema } = require("../validation/joi");
 
 // wcześniejsza funkcja

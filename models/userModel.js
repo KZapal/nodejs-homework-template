@@ -1,4 +1,3 @@
-// import bCrypt from "bcrypt";
 const mongoose = require("mongoose");
 const bCrypt = require("bcryptjs");
 
@@ -21,6 +20,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  avatarURL: String, // Dodajemy właściwość avatarURL
 });
 
 userSchema.methods.setPassword = async function (password) {
@@ -34,4 +34,3 @@ userSchema.methods.validatePassword = function (password) {
 const User = mongoose.model("User", userSchema, "users");
 
 module.exports = User;
-
