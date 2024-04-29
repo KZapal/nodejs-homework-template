@@ -1,6 +1,11 @@
-const User = require("../mongodb/usersSchema");
+const User = require("../models/userModel");
 const { authSchema } = require("../validation/joi");
 const jwt = require("jsonwebtoken");
+const gravatar = require("gravatar");
+const fs = require("fs");
+const path = require("path");
+const jimp = require("jimp");
+const { v4: uuidv4 } = require("uuid");
 
 const signup = async (req, res, next) => {
   const { email, password, subscription } = req.body;
@@ -16,10 +21,17 @@ const signup = async (req, res, next) => {
   }
 
   try {
+    const avatarURL = gravatar.url(email, {
+      s: "200",
+      r: "pg",
+      d: "identicon",
+    });
+
     const newUser = new User({
       email: email,
       password: password,
       subscription: subscription,
+      avatarURL: avatarURL,
     });
 
     newUser.setPassword(password);
@@ -106,9 +118,38 @@ const getCurrentUser = async (req, res, next) => {
   }
 };
 
+const storeImageDir = path.join(process.cwd(), "public/avatars");
+
+const updateAvatar = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const image = await jimp.read(req.file.path);
+    await image.resize(250, 250);
+    const avatarFileName = `${uuidv4()}${path.extname(req.file.originalname)}`;
+    const avatarPath = path.join(storeImageDir, avatarFileName);
+    await image.write(avatarPath);
+
+    req.user.avatarURL = `/avatars/${avatarFileName}`;
+    await req.user.save();
+
+    fs.unlinkSync(req.file.path);
+
+    res.status(200).json({ avatarURL: req.user.avatarURL });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   signup,
   login,
   logout,
   getCurrentUser,
+  updateAvatar,
 };

@@ -1,9 +1,10 @@
 const express = require("express");
 const logger = require("morgan");
 const cors = require("cors");
-const connectDB = require("./mongodb/connection");
+const connectDB = require("./connection");
 const contactsRouter = require("./routes/api/contacts");
 const usersRouter = require("./routes/api/users");
+const path = require("path");
 
 const app = express();
 
@@ -17,6 +18,7 @@ connectDB();
 
 app.use("/api/contacts", contactsRouter);
 app.use("/users", usersRouter);
+app.use(express.static(path.join(__dirname, "./public")));
 
 app.use((req, res) => {
   res.status(404).json({ message: "Not found" });
