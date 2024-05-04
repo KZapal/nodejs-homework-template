@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const users = require("../../controllers/users");
-const authCheck = require("../../middleware/authCheck");
-const uploadMiddleware = require("../../middleware/multer");
+const authCheck = require("../../config/authCheck");
+const uploadMiddleware = require("../../config/multer");
 
 // Signup
 router.post("/signup", users.signup);
@@ -23,5 +23,11 @@ router.patch(
   uploadMiddleware.single("avatar"),
   users.updateAvatar
 );
+
+// Verification email
+router.get("/verify/:verificationToken", users.verifyUser);
+
+// Re send varivication email
+router.post("/verify", users.reSendVerificationEmail);
 
 module.exports = router;
